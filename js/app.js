@@ -9,8 +9,8 @@ import vertex from "./shader/vertex.glsl";
 // import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import GUI from "lil-gui";
 import gsap from "gsap";
-import fnt from "../font/FontsFree-Net-DINPro-1-msdf.fnt";
-import png from "../font/FontsFree-Net-DINPro-1.png";
+import fnt from "../font/Roboto-Medium-msdf.fnt";
+import png from "../font/Roboto-Medium.png";
 // console.log(fnt, "fnt");
 
 export default class Sketch {
@@ -23,7 +23,7 @@ export default class Sketch {
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setPixelRatio(window.devicePixelRatio, 2);
     this.renderer.setSize(this.width, this.height);
-    this.renderer.setClearColor(0xeeeeee, 1);
+    this.renderer.setClearColor(0x111111, 1);
     this.renderer.physicallyCorrectLights = true;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
 
@@ -39,7 +39,7 @@ export default class Sketch {
     // let frustumSize = 10;
     // let aspect = window.innerWidth / window.innerHeight;
     // this.camera = new THREE.OrthographicCamera( frustumSize * aspect / - 2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / - 2, -1000, 1000 );
-    this.camera.position.set(0, 0, 2);
+    this.camera.position.set(0, 0, 3);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement); 
     this.time = 0;
 
@@ -55,12 +55,50 @@ export default class Sketch {
   settings() {
     let that = this;
     this.settings = {
-      progress: 0,
+      uProgress1: 0,
+      uProgress2: 0,
+      uProgress3: 0,
+      uProgress4: 0,
+      gogo: () => {
+        let d = 10; // duration of animation
+        let stagger = 0.05; // stagger between each animation
+        let tl = gsap.timeline();
+        tl.to(this.material.uniforms.uProgress1, {
+          value: 1,
+          duration: d / 2,
+          ease: "power4.out",
+        });
+        tl.to(this.material.uniforms.uProgress2, {
+          value: 1,
+          duration: d,
+          ease: "power4.out",
+        },stagger);
+        tl.to(this.material.uniforms.uProgress3, {
+          value: 1,
+          duration: d,
+          ease: "power4.out",
+        },stagger*4);
+        tl.to(this.material.uniforms.uProgress4, {
+          value: 1,
+          duration: d,
+          ease: "power4.out",
+        },stagger*8);
+      },
     };
     this.gui = new GUI();
-    this.gui.add(this.settings, "progress", 0, 1, 0.01).onChange(() => {
-      this.material.uniforms.uProgress1.value = this.settings.progress
+    this.gui.add(this.settings, "uProgress1", 0, 1, 0.01).onChange(() => {
+      this.material.uniforms.uProgress1.value = this.settings.uProgress1
     }); 
+    this.gui.add(this.settings, "uProgress2", 0, 1, 0.01).onChange(() => {
+      this.material.uniforms.uProgress2.value = this.settings.uProgress2
+    }); 
+    this.gui.add(this.settings, "uProgress3", 0, 1, 0.01).onChange(() => {
+      this.material.uniforms.uProgress3.value = this.settings.uProgress3
+    }); 
+    this.gui.add(this.settings, "uProgress4", 0, 1, 0.01).onChange(() => {
+      this.material.uniforms.uProgress4.value = this.settings.uProgress4
+    }); 
+    this.gui.add(this.settings, "gogo");
   }
   setupResize() {
     window.addEventListener("resize", this.resize.bind(this));
@@ -102,7 +140,7 @@ export default class Sketch {
 
     Promise.all([loadFontAtlas(png)]).then(([atlas]) => {
       const geometry = new MSDFTextGeometry({
-        text: "HELLO",
+        text: "STUNNING INTEGRATED DESIGN",
         font: fnt,
       });
 
@@ -130,6 +168,9 @@ export default class Sketch {
           ...{
             uStrokeColor: { value: new THREE.Color(0x00ff00) },
             uProgress1: { value: 0 },
+            uProgress2: { value: 0 },
+            uProgress3: { value: 0 },
+            uProgress4: { value: 0 },
             time: { value: 0 },
           }
         },
@@ -155,6 +196,9 @@ export default class Sketch {
             // Utils
             #include <three_msdf_median>
             uniform float uProgress1;
+            uniform float uProgress2;
+            uniform float uProgress3;
+            uniform float uProgress4;
             uniform float time;
 
 float rand(float n){return fract(sin(n) * 43758.5453123);}
@@ -185,11 +229,57 @@ float map(float value, float min1, float max1, float min2, float max2) {
                 #include <three_msdf_strokes>
     
                 // Alpha Test
-                #include <three_msdf_alpha_test>
+                // #include <three_msdf_alpha_test>
     
                 // Outputs
                 #include <three_msdf_strokes_output>
-                gl_FragColor = vec4(uProgress1*1.0, 0.0, 0.0, 1.0); 
+
+                vec4 l1 = vec4(0.5, 0.5, 0.5, border);
+                vec4 l2 = vec4(1.0, 0.1, 0.6, border);
+                vec4 l3 = vec4(1.0, 0.1, 0.6, border);
+                vec4 l4 = vec4(vec3(1.0),outset);
+                float x = floor(vLayoutUv.x * 2.*3.8); // controls the number of x lines in the checkerboard
+                float y = floor(vLayoutUv.y * 2.); // controls the number of y lines in the checkerboard
+                float pattern = noise(vec2(x,y));
+
+                float w = 0.1;
+                float p1 = uProgress1;
+                p1 = map(p1, 0.0, 1.0, -w, 1.0);
+                p1 = smoothstep(p1,p1+w,vLayoutUv.x);
+                float mix1 = 2.0*p1 -pattern;
+                mix1 = clamp(mix1, 0.0, 1.0);
+
+                float p2 = uProgress2;
+                p2 = map(p2, 0.0, 1.0, -w, 1.0);
+                p2 = smoothstep(p2,p2+w,vLayoutUv.x);
+                float mix2 = 2.0*p2 -pattern;
+                mix2 = clamp(mix2, 0.0, 1.0);
+
+                float p3 = uProgress3;
+                p3 = map(p3, 0.0, 1.0, -w, 1.0);
+                p3 = smoothstep(p3,p3+w,vLayoutUv.x);
+                float mix3 = 2.0*p3 -pattern;
+                mix3 = clamp(mix3, 0.0, 1.0);
+
+                float p4 = uProgress4;
+                p4 = map(p4, 0.0, 1.0, -w, 1.0);
+                p4 = smoothstep(p4,p4+w,vLayoutUv.x);
+                float mix4 = 2.0*p4 -pattern;
+                mix4 = clamp(mix4, 0.0, 1.0);
+
+
+                vec4 layer0 = mix(vec4(0.0), l1, 1.0-mix1);
+                vec4 layer1 = mix(layer0, l2, 1.0-mix2);
+                vec4 layer2 = mix(layer1, l3, 1.0-mix3);
+                vec4 layer3 = mix(layer2, l4, 1.0-mix4);
+
+                // gl_FragColor = vec4(uProgress1*1.0, 0.0, 0.0, 1.0); 
+                // gl_FragColor = l4;
+                // gl_FragColor = vec4(vec3(pattern), 1.0);
+                // gl_FragColor = vec4(vec3(p0_), 1.0);
+                gl_FragColor = layer3;
+                // gl_FragColor = mix(vec4(0.0), l1, 1.0-mix0);
+
             }
         `,
       });
@@ -198,8 +288,8 @@ float map(float value, float min1, float max1, float min2, float max2) {
 
         const mesh = new THREE.Mesh(geometry, this.material);
         this.scene.add(mesh);
-        mesh.scale.set(0.02, -0.02, 0.02);
-        mesh.position.x = -1.35;
+        mesh.scale.set(0.005, -0.005, 0.005);
+        mesh.position.x = -1.35; // centers the text to the screen
     });
     function loadFontAtlas(path) {
       const promise = new Promise((resolve, reject) => {
