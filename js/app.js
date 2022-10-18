@@ -98,7 +98,7 @@ export default class Sketch {
     this.geometry = new THREE.PlaneGeometry(1, 1, 1, 1);
 
     this.plane = new THREE.Mesh(this.geometry, this.material);
-    this.scene.add(this.plane);
+    // this.scene.add(this.plane);
 
     Promise.all([loadFontAtlas(png)]).then(([atlas]) => {
       const geometry = new MSDFTextGeometry({
@@ -124,6 +124,10 @@ export default class Sketch {
 
           // Strokes
           ...uniforms.strokes,
+          ...{
+            uStrokeColor: { value: new THREE.Color(0x00ff00) },
+            uProgress1: { value: 0 },
+          }
         },
         vertexShader: `
             // Attribute
@@ -146,6 +150,27 @@ export default class Sketch {
     
             // Utils
             #include <three_msdf_median>
+            uniform float uProgress1;
+
+float rand(float n){return fract(sin(n) * 43758.5453123);}
+float rand(vec2 n) { 
+	return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+}
+
+float noise(float p){
+		float fl = floor(p);
+	float fc = fract(p);
+		return mix(rand(fl), rand(fl + 1.0), fc);
+}
+float noise(vec2 n) {
+		const vec2 d = vec2(0.0, 1.0);
+	vec2 b = floor(n), f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
+		return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
+}
+// map GLSL
+float map(float value, float min1, float max1, float min2, float max2) {
+  return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+}
     
             void main() {
                 // Common
@@ -159,7 +184,7 @@ export default class Sketch {
     
                 // Outputs
                 #include <three_msdf_strokes_output>
-                // gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); 
+                gl_FragColor = vec4(uProgress1*1.0, 0.0, 0.0, 1.0); 
             }
         `,
       });
@@ -168,7 +193,7 @@ export default class Sketch {
         material.uniforms.uMap.value = atlas;
 
         const mesh = new THREE.Mesh(geometry, material);
-        // this.scene.add(mesh);
+        this.scene.add(mesh);
         mesh.scale.set(0.02, -0.02, 0.02);
         mesh.position.x = -1.35;
     });
