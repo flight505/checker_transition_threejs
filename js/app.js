@@ -59,7 +59,7 @@ export default class Sketch {
     };
     this.gui = new GUI();
     this.gui.add(this.settings, "progress", 0, 1, 0.01).onChange(() => {
-      this.material.uniforms.progress.value = this.settings.progress
+      this.material.uniforms.uProgress1.value = this.settings.progress
     }); 
   }
   setupResize() {
@@ -105,8 +105,11 @@ export default class Sketch {
         text: "HELLO",
         font: fnt,
       });
+
       // const material = new MSDFTextMaterial();
-      const material = new THREE.ShaderMaterial({
+
+
+      this.material = new THREE.ShaderMaterial({
         side: THREE.DoubleSide,
         transparent: true,
         defines: {
@@ -127,6 +130,7 @@ export default class Sketch {
           ...{
             uStrokeColor: { value: new THREE.Color(0x00ff00) },
             uProgress1: { value: 0 },
+            time: { value: 0 },
           }
         },
         vertexShader: `
@@ -151,6 +155,7 @@ export default class Sketch {
             // Utils
             #include <three_msdf_median>
             uniform float uProgress1;
+            uniform float time;
 
 float rand(float n){return fract(sin(n) * 43758.5453123);}
 float rand(vec2 n) { 
@@ -188,11 +193,10 @@ float map(float value, float min1, float max1, float min2, float max2) {
             }
         `,
       });
-      material.uniforms.uMap.value = atlas;
       
-        material.uniforms.uMap.value = atlas;
+        this.material.uniforms.uMap.value = atlas;
 
-        const mesh = new THREE.Mesh(geometry, material);
+        const mesh = new THREE.Mesh(geometry, this.material);
         this.scene.add(mesh);
         mesh.scale.set(0.02, -0.02, 0.02);
         mesh.position.x = -1.35;
